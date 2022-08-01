@@ -1,6 +1,7 @@
 import 'package:background_sms/background_sms.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:contact_picker/contact_picker.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,6 +16,8 @@ class MyApp extends StatefulWidget {
 }
 
 class MyAppState extends State<MyApp> {
+  final ContactPicker _contactPicker = ContactPicker();
+  late Contact _contact;
   _getPermission() async => await [
         Permission.sms,
       ].request();
@@ -45,11 +48,17 @@ class MyAppState extends State<MyApp> {
         floatingActionButton: FloatingActionButton(
           child: const Icon(Icons.send),
           onPressed: () async {
+            Contact contact = await _contactPicker.selectContact();
+            setState(() {
+              _contact = contact;
+            });
             if (await _isPermissionGranted()) {
               if ((await _supportCustomSim)!) {
-                _sendMessage("01092752159", "Hello", simSlot: 1);
+                //_sendMessage("01092752159", "Hello", simSlot: 1);
+                _sendMessage(_contact.phoneNumber.toString(), "Hello", simSlot: 1);
               } else {
-                _sendMessage("01092752159", "Hello");
+                //_sendMessage("01092752159", "Hello");
+                _sendMessage(_contact.phoneNumber.toString(), "Hello");
               }
             } else {
               _getPermission();
