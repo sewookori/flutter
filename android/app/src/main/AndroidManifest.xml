@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.flutter_project">
    <uses-permission android:name="android.permission.SEND_SMS" />
+   <uses-permission android:name="android.permission.READ_CONTACTS" />  
+   <uses-permission android:name="android.permission.WRITE_CONTACTS" />  
    <application
         android:label="flutter_project"
         android:name="${applicationName}"
