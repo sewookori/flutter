@@ -1,4 +1,4 @@
-package com.example.flutter_project
+package com.sewookori.fake_artist
 
 import io.flutter.embedding.android.FlutterActivity
 
