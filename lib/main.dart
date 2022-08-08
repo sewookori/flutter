@@ -1,14 +1,37 @@
-import 'package:background_sms/background_sms.dart';
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:multi_select_flutter/multi_select_flutter.dart';
 import 'dart:math';
 import 'package:vibration/vibration.dart';
+import 'contacts.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'generated/locale_keys.g.dart';
 
-void main() {
+final supportedLocales = [
+  const Locale('en', 'US'),
+  const Locale('ko', 'KR'),
+  const Locale('ja', 'JP')
+];
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MyApp());
+  await EasyLocalization.ensureInitialized();
+
+  //runApp(const MyApp());
+  runApp(
+  EasyLocalization(
+      // 지원 언어 리스트
+      supportedLocales: supportedLocales,
+      //path: 언어 파일 경로
+      path: 'assets/translations',
+      //fallbackLocale supportedLocales에 설정한 언어가 없는 경우 설정되는 언어
+      fallbackLocale: const Locale('en', 'US'),
+
+      //startLocale을 지정하면 초기 언어가 설정한 언어로 변경됨
+      //만일 이 설정을 하지 않으면 OS 언어를 따라 기본 언어가 설정됨
+      //startLocale: Locale('ko', 'KR')
+
+      child: const MyApp()),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -18,140 +41,32 @@ class MyApp extends StatefulWidget {
   MyAppState createState() => MyAppState();
 }
 
-class ContactInfo {
-  String name;
-  String phone;
-  String email;
-  bool isFakeArtest;
-
-  ContactInfo(
-      {required this.name,
-      required this.phone,
-      required this.email,
-      this.isFakeArtest = false});
-}
-
-class ContactListItem extends ListTile {
-  ContactListItem(ContactInfo contact, {Key? key})
-      : super(
-            key: key,
-            leading: const Icon(Icons.person),
-            title: Text(contact.name),
-            subtitle: Text(contact.phone),
-            trailing: Text(contact.email));
-}
-
 class MyAppState extends State<MyApp> {
   List<ContactInfo>? _contacts = [];
   List<ContactInfo>? _selectedContacts = [];
-  bool _isContactPermissionDenied = true;
+  bool _isContactPermissionAllowed = false;
   bool _isSmsPermissionGranted = false;
   final _myController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _fetchContacts();
-    _setSmsPermissionFlag();
+    _checkContactsReady();
   }
 
-  Future _setSmsPermissionFlag() async {
-    if (!await _checkSmsPermissionGranted()) {
-      setState(() => _isSmsPermissionGranted = false);
-    } else {
-      setState(() => _isSmsPermissionGranted = true);
-    }
+  Future<void> _checkContactsReady() async {
+    List<ContactInfo> contactInfoList = [];
+    var fetchContactsResult = await fetchContacts(contactInfoList);
+    var checkSmsPermissionResult = await checkSmsPermissionGranted();
+    setState(() {
+      _isContactPermissionAllowed = fetchContactsResult;
+      _contacts = contactInfoList;
+      _isSmsPermissionGranted = checkSmsPermissionResult;
+    });
   }
 
-  _getSmsPermission() async => await [
-        Permission.sms,
-      ].request();
-
-  Future<bool> _checkSmsPermissionGranted() async =>
-      await Permission.sms.status.isGranted;
-
-  _sendMessage(String phoneNumber, String message, {int? simSlot}) async {
-    var result = await BackgroundSms.sendMessage(
-        phoneNumber: phoneNumber, message: message, simSlot: simSlot);
-    if (result == SmsStatus.sent) {
-      print("Sent");
-    } else {
-      print("Failed");
-    }
-  }
-
-  _sendSMS(List<ContactInfo> selectedContactList) async {
-    for (var selectedContact in selectedContactList) {
-      if (selectedContact.phone != 'None') {
-        if ((await _supportCustomSim)!) {
-          if (selectedContact.isFakeArtest == true) {
-            print(
-                'send message : ${selectedContact.name}, (fake artist), ${selectedContact.phone}, hint: ${_myController.text}');
-            // _sendMessage(selectedContact.phone, '당신은 가짜 예술가 입니다.', simSlot: 1);
-          } else {
-            print(
-                'send message : ${selectedContact.name}, (true artist), ${selectedContact.phone}, hint: ${_myController.text}');
-            // _sendMessage(
-            //     selectedContact.phone, '이번 주제는 ${_myController.text} 입니다',
-            //     simSlot: 1);
-          }
-        } else {
-          if (selectedContact.isFakeArtest == true) {
-            print(
-                'send message : ${selectedContact.name}, (fake artist), ${selectedContact.phone}, hint: ${_myController.text}');
-            // _sendMessage(selectedContact.phone, '당신은 가짜 예술가 입니다.');
-          } else {
-            print(
-                'send message : ${selectedContact.name}, (true artist), ${selectedContact.phone}, hint: ${_myController.text}');
-            // _sendMessage(
-            //     selectedContact.phone, '이번 주제는 ${_myController.text} 입니다');
-          }
-        }
-      } else {
-        print(
-            'No mobile phone number! Can\'t send SMS to ${selectedContact.name}!');
-      }
-    }
-  }
-
-  Future<bool?> get _supportCustomSim async =>
-      await BackgroundSms.isSupportCustomSim;
-
-  Future _fetchContacts() async {
-    if (!await FlutterContacts.requestPermission(readonly: true)) {
-      setState(() => _isContactPermissionDenied = true);
-    } else {
-      List<ContactInfo>? mobileContactList = [];
-      var contacts = await FlutterContacts.getContacts();
-      if (contacts.isNotEmpty) {
-        for (var element in contacts) {
-          var fullContact = await FlutterContacts.getContact(element.id);
-
-          var mobileIndex = fullContact!.phones
-              .indexWhere((element) => element.label == PhoneLabel.mobile);
-
-          var contactInfo = ContactInfo(
-              name: fullContact.displayName,
-              phone: (mobileIndex != -1)
-                  ? fullContact.phones[mobileIndex].number
-                  : 'None',
-              email: (fullContact.emails.isNotEmpty)
-                  ? fullContact.emails[0].address
-                  : 'None',
-              isFakeArtest: false);
-          if (contactInfo.phone != 'None') {
-            mobileContactList.add(contactInfo);
-          }
-        }
-
-        setState(() {
-          _isContactPermissionDenied = false;
-          _contacts = mobileContactList;
-        });
-      } else {
-        print('No Contacts found !');
-      }
-    }
+  void setContactInfo(List<ContactInfo> contacts) {
+    _contacts = contacts;
   }
 
   void _setFakeArtist() {
@@ -183,13 +98,16 @@ class MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+        localizationsDelegates: context.localizationDelegates,
+        supportedLocales: context.supportedLocales,
+        locale: context.locale,
         home: Container(
             decoration: BoxDecoration(
                 image: DecorationImage(
               fit: BoxFit.fitWidth,
               colorFilter: ColorFilter.mode(
                   Colors.black.withOpacity(0.8), BlendMode.dstATop),
-              image: const AssetImage('images/fake_artest_title.jpg'),
+              image: const AssetImage('assets/fake_artest_title.jpg'),
             )),
             child: Scaffold(
                 backgroundColor: Colors.transparent,
@@ -203,24 +121,30 @@ class MyAppState extends State<MyApp> {
                   backgroundColor: Colors.yellow[700],
                 ),
                 body: Builder(builder: (BuildContext ctx) {
+                  //context.setLocale(const Locale('ja', 'JP'));
+                  //context.resetLocale();
                   final items = _contacts!
                       .map((contact) =>
                           MultiSelectItem<ContactInfo>(contact, contact.name))
                       .toList();
-                  if (_isContactPermissionDenied) {
+                  if (!_isContactPermissionAllowed) {
                     return Column(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const <Widget>[
-                      Center(child: CircularProgressIndicator(color: Colors.yellow,)),
-                      // CircularProgressIndicator(),
-                      Padding(padding: EdgeInsets.only(top:120)),
-                      Text('전화번호부 목록 조회중...', style: TextStyle(
-                              color: Colors.yellow,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold
-                            ),)
-                      ]);
+                        mainAxisSize: MainAxisSize.max,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          const Center(
+                              child: CircularProgressIndicator(
+                            color: Colors.yellow,
+                          )),
+                          const Padding(padding: EdgeInsets.only(top: 120)),
+                          Text(
+                            LocaleKeys.searchingContacts.tr(),
+                            style: const TextStyle(
+                                color: Colors.yellow,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold),
+                          )
+                        ]);
                   }
                   if (_contacts == null) {
                     return const Center(child: CircularProgressIndicator());
@@ -234,7 +158,7 @@ class MyAppState extends State<MyApp> {
                       child: Column(children: <Widget>[
                         MultiSelectDialogField(
                             items: items,
-                            title: const Text("플레이어 선택"),
+                            title: Text(LocaleKeys.selectPlayers.tr()),
                             selectedColor: Colors.blue,
                             searchable: true,
                             decoration: BoxDecoration(
@@ -251,7 +175,7 @@ class MyAppState extends State<MyApp> {
                               color: Colors.yellow,
                             ),
                             buttonText: Text(
-                              "전화번호부로 플레이어 선택",
+                              LocaleKeys.selectFromContacts.tr(),
                               style: TextStyle(
                                 color: Colors.yellow[800],
                                 fontSize: 16,
@@ -286,7 +210,7 @@ class MyAppState extends State<MyApp> {
                                 setState(() {});
                               },
                               decoration: InputDecoration(
-                                labelText: '주제어',
+                                labelText: LocaleKeys.topic.tr(),
                                 labelStyle: TextStyle(
                                   color: Colors.yellow.withOpacity(0.7),
                                   fontSize: 16,
@@ -312,7 +236,7 @@ class MyAppState extends State<MyApp> {
                                   borderSide: BorderSide(
                                       color: Colors.yellow, width: 5.0),
                                 ),
-                                hintText: '주제 힌트 입력',
+                                hintText: LocaleKeys.insertTheTopic.tr(),
                                 hintStyle: const TextStyle(
                                   color: Colors.green,
                                   fontSize: 16,
@@ -333,8 +257,8 @@ class MyAppState extends State<MyApp> {
                                 side: const BorderSide(
                                     width: 5.0, color: Colors.yellow),
                               ),
-                              child: const Text("SEND!",
-                                  style: TextStyle(color: Colors.yellow)),
+                              child: Text(LocaleKeys.send.tr(),
+                                  style: const TextStyle(color: Colors.yellow)),
                               onPressed: () async {
                                 Vibration.vibrate(
                                     pattern: [150], intensities: [20]);
@@ -343,9 +267,9 @@ class MyAppState extends State<MyApp> {
                                   _setFakeArtist();
                                   _finalConfirm(ctx);
                                 } else if (_selectedContacts!.isEmpty) {
-                                  _showSnackBar(ctx, '선택된 플레이어가 없습니다 !');
+                                  _showSnackBar(ctx, LocaleKeys.noPlayerSelected.tr());
                                 } else {
-                                  _showSnackBar(ctx, '선택된 주제어가 없습니다 !');
+                                  _showSnackBar(ctx, LocaleKeys.noTopicSelected.tr());
                                 }
                               },
                             ))
@@ -361,22 +285,22 @@ class MyAppState extends State<MyApp> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('최종 확인'),
-          content: const Text('정말 보내시겠습니까 ?'),
+          title: Text(LocaleKeys.finalConfirm.tr()),
+          content: Text(LocaleKeys.doYouWantToSend.tr()),
           actions: <Widget>[
             ElevatedButton(
-                child: const Text('예'),
+                child: Text(LocaleKeys.yes.tr()),
                 onPressed: () {
                   if (_isSmsPermissionGranted) {
-                    _sendSMS(_selectedContacts!);
-                    _showSnackBar(context, '전송 완료 !');
+                    sendSMS(_selectedContacts!, _myController.text);
+                    _showSnackBar(context, LocaleKeys.finished.tr());
                   } else {
-                    _getSmsPermission();
+                    getSmsPermission();
                   }
                   Navigator.of(context).pop();
                 }),
             ElevatedButton(
-              child: const Text('아니오'),
+              child: Text(LocaleKeys.no.tr()),
               onPressed: () => Navigator.of(context).pop(),
             ),
           ],

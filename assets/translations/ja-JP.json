@@ -1,0 +1,17 @@
+{
+    "searchingContacts": "連絡先 検索中...",
+    "selectFromContacts": "連絡先でプレイヤー選択",
+    "selectPlayers": "プレイヤー選択",
+    "topic": "お題",
+    "insertTheTopic": "お題 入力",
+    "noPlayerSelected": "プレイヤーが選択されていません !",
+    "noTopicSelected": "お題が選択されていません !",
+    "finalConfirm": "確認",
+    "doYouWantToSend": " 本当に送りますか ?",
+    "yes": "はい",
+    "no": "いいえ",
+    "trueArtistWithArg": "今回のラウンドのお題は{}です.",
+    "fakeArtist": "あなたはエセ芸術家です !",
+    "send": "送信",
+    "finished": "完了 !"
+}

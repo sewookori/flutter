@@ -39,6 +39,7 @@ dependencies:
   flutter_contacts: ^1.1.5
   multi_select_flutter: ^4.1.2
   vibration: ^1.7.5
+  easy_localization: ^3.0.1
 
 dev_dependencies:
   flutter_test:
@@ -64,7 +65,8 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - images/fake_artest_title.jpg
+    - assets/fake_artest_title.jpg
+    - assets/translations/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

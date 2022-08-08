@@ -1,0 +1,17 @@
+{
+    "searchingContacts": "Searching contacts...",
+    "selectFromContacts": "Select players from Contacts",
+    "selectPlayers": "Select players",
+    "topic": "topic",
+    "insertTheTopic": "Insert the topic",
+    "noPlayerSelected": "No player selected !",
+    "noTopicSelected": "No topic selected !",
+    "finalConfirm": "Final confirm",
+    "doYouWantToSend": "Do you want to send ?",
+    "yes": "Yes",
+    "no": "No",
+    "trueArtistWithArg": "The topic for this round is {}",
+    "fakeArtist": "You are the fake artist !",
+    "send": "SEND",
+    "finished": "Finished !"
+}
